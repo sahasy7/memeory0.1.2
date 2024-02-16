@@ -4,4 +4,5 @@ langchain
 langchain-community 
 langchainhub 
 langchain-openai 
-faiss-cpu
+qdrant-client 
+tiktoken
