@@ -15,7 +15,7 @@ from langchain.chat_models import ChatOpenAI
 from langchain.schema import SystemMessage, AIMessage, HumanMessage
 from langchain.prompts import MessagesPlaceholder
 from langsmith import Client
-
+LANGCHAIN_API_KEY= st.secrets.LangSmith_API
 client = Client()
 
 st.set_page_config(
@@ -49,7 +49,7 @@ tool = create_retriever_tool(
     "Searches and returns documents regarding LangSmith. LangSmith is a platform for debugging, testing, evaluating, and monitoring LLM applications. You do not know anything about LangSmith, so if you are ever asked about LangSmith you should use this tool.",
 )
 tools = [tool]
-llm = ChatOpenAI(temperature=0, streaming=True, model="gpt-4")
+llm = ChatOpenAI(temperature=0, streaming=True, model="gpt-3.5-turbo")
 message = SystemMessage(
     content=(
         "You are a helpful chatbot who is tasked with answering questions about LangSmith. "
