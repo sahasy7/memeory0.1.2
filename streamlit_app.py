@@ -46,7 +46,9 @@ def load_data():
             embeddings=embeddings
         )
         print("Connection established!")
-        return vector_store
+       vectore_store = load_data()
+       dr = vectore_store.as_retriever()
+        return dr
 
 
 prompt_template = """
@@ -80,14 +82,12 @@ template = (
 prompt = PromptTemplate.from_template(template)
         # question_generator_chain = LLMChain(llm=llm, prompt=prompt
 if "chat_engine" not in st.session_state.keys():
-  vectore_store = load_data()
-  dr = vectore_store.as_retriever()
   # Initialize the chat engine
   st.session_state.chat_engine = ConversationalRetrievalChain.from_llm(
             llm = llm,
             chain_type = "stuff",
             memory = ConversationSummaryMemory(llm = llm, memory_key='chat_history', input_key='question', output_key= 'answer', return_messages=True),
-            retriever = dr,
+            retriever = load_data(),
             condense_question_prompt = prompt,
             return_source_documents=False,
             combine_docs_chain_kwargs=chain_type_kwargs,
