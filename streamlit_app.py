@@ -1,137 +1,112 @@
-import os
-import qdrant_client
-from langchain_openai import OpenAIEmbeddings
-from langchain.vectorstores import Qdrant
 import streamlit as st
-from langchain_openai import OpenAIEmbeddings
-from langchain_openai import ChatOpenAI
-from langchain.prompts import PromptTemplate
-from langchain.chains.conversation.memory import ConversationSummaryMemory
-from langchain.chains import ConversationalRetrievalChain,LLMChain, RetrievalQA
 
-# Set page configuration for Streamlit
-st.set_page_config(page_title="Chat with the Chat Bot",
-                   page_icon="🤖",
-                   layout="centered",
-                   initial_sidebar_state="auto",
-                   menu_items=None)
-
-# Title for the app
-st.title("Welcome To GSM infoBot")
-
-# Initialize the chat messages history
-if "messages" not in st.session_state.keys():
-  st.session_state.messages = [{
-      "role":
-      "assistant",
-      "content":
-      "Need Info? Ask Me Questions about GSM Mall's Features"
-  }]
-
-os.environ['OPENAI_API_KEY'] = st.secrets.openai_key
-QDRANT_HOST = st.secrets.QDRANT_HOST
-QDRANT_API_KEY = st.secrets.QDRANT_API_KEY
-
-@st.cache(show_spinner=False)
-
-# Custom hash function for qdrant_client.QdrantClient
-def hash_qdrant_client(obj):
-    # Return a hashable representation of the object
-    return hash((obj.url, obj.api_key))
-
-# Custom hash function for OpenAIEmbeddings
-def hash_openai_embeddings(obj):
-    # Return a hashable representation of the object
-    return hash(obj.model)  # Adjust this based on the properties you want to hash
-
-# Custom hash function for langchain_community.vectorstores.qdrant.Qdrant
-def hash_qdrant(obj):
-    # Return a hashable representation of the object
-    return hash((obj.client, obj.collection_name, obj.embeddings))
-
-@st.cache(
-    hash_funcs={
-        qdrant_client.QdrantClient: hash_qdrant_client,
-        OpenAIEmbeddings: hash_openai_embeddings,
-        Qdrant: hash_qdrant
-    }
+from langchain.document_loaders import RecursiveUrlLoader
+from langchain.document_transformers import Html2TextTransformer
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.vectorstores.faiss import FAISS
+from langchain.callbacks import StreamlitCallbackHandler
+from langchain.agents import OpenAIFunctionsAgent, AgentExecutor
+from langchain.agents.agent_toolkits import create_retriever_tool
+from langchain.agents.openai_functions_agent.agent_token_buffer_memory import (
+    AgentTokenBufferMemory,
 )
-def load_data():
-    with st.spinner(text="Loading and indexing the Streamlit docs – hang tight! This should take 1-2 minutes."):
-        client = qdrant_client.QdrantClient(
-            url=QDRANT_HOST,
-            api_key=QDRANT_API_KEY,
-        )
-        embeddings = OpenAIEmbeddings()
-        vector_store = Qdrant(
-            client=client,
-            collection_name="gsm_demo.0.0.4",
-            embeddings=embeddings
-        )
-        print("Connection established!")
-        return vector_store
+from langchain.chat_models import ChatOpenAI
+from langchain.schema import SystemMessage, AIMessage, HumanMessage
+from langchain.prompts import MessagesPlaceholder
+from langsmith import Client
 
-cetore_sotre = load_data()
-dr = cetore_sotre.as_retriever()
+client = Client()
 
-prompt_template = """
-Your friendly assistant is here to help! Remember, always provide clear, concise, and friendly responses within 10-15 words. value User time and aim to provide clear and concise responses. Maintain a positive and professional tone. Encourage users to visit the store subtly, without being pushy. Dont hallucinate. Let's make every interaction a delightful experience! 😊
-
-You will be given a context of the conversation made so far followed by a customer's question,
-give the answer to the question using the context.
-The answer should be short, straight and to the point. If you don't know the answer, reply that the answer is not available.
-
-Context: {context}
-
-Question: {question}
-Answer:"""
-
-PROMPT = PromptTemplate(
-template=prompt_template, input_variables=["context", "question"]
+st.set_page_config(
+    page_title="ChatLangChain",
+    page_icon="🦜",
+    layout="wide",
+    initial_sidebar_state="collapsed",
 )
 
-chain_type_kwargs = { "prompt" : PROMPT }
-#build your LLM
-llm = ChatOpenAI(temperature=0)
+"# Chat🦜🔗"
 
-template = (
-                """Combine the chat history and follow up question into
-                a standalone question.
-                If chat hsitory is empty, use the follow up question as it is.
-                Chat History: {chat_history}
-                Follow up question: {question}"""
-            )
-        # TRY TO ADD THE INPUT VARIABLES
-prompt = PromptTemplate.from_template(template)
-        # question_generator_chain = LLMChain(llm=llm, prompt=prompt
-if "chat_engine" not in st.session_state.keys():
-  # Initialize the chat engine
-  st.session_state.chat_engine = ConversationalRetrievalChain.from_llm(
-            llm = llm,
-            chain_type = "stuff",
-            memory = ConversationSummaryMemory(llm = llm, memory_key='chat_history', input_key='question', output_key= 'answer', return_messages=True),
-            retriever = dr,
-            condense_question_prompt = prompt,
-            return_source_documents=False,
-            combine_docs_chain_kwargs=chain_type_kwargs,
+
+@st.cache_resource(ttl="1h")
+def configure_retriever():
+    loader = RecursiveUrlLoader("https://docs.smith.langchain.com/")
+    raw_documents = loader.load()
+    docs = Html2TextTransformer().transform_documents(raw_documents)
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000,
+        chunk_overlap=200,
+    )
+    documents = text_splitter.split_documents(docs)
+    embeddings = OpenAIEmbeddings()
+    vectorstore = FAISS.from_documents(documents, embeddings)
+    return vectorstore.as_retriever(search_kwargs={"k": 4})
+
+
+tool = create_retriever_tool(
+    configure_retriever(),
+    "search_langsmith_docs",
+    "Searches and returns documents regarding LangSmith. LangSmith is a platform for debugging, testing, evaluating, and monitoring LLM applications. You do not know anything about LangSmith, so if you are ever asked about LangSmith you should use this tool.",
+)
+tools = [tool]
+llm = ChatOpenAI(temperature=0, streaming=True, model="gpt-4")
+message = SystemMessage(
+    content=(
+        "You are a helpful chatbot who is tasked with answering questions about LangSmith. "
+        "Unless otherwise explicitly stated, it is probably fair to assume that questions are about LangSmith. "
+        "If there is any ambiguity, you probably assume they are about that."
+    )
+)
+prompt = OpenAIFunctionsAgent.create_prompt(
+    system_message=message,
+    extra_prompt_messages=[MessagesPlaceholder(variable_name="history")],
+)
+agent = OpenAIFunctionsAgent(llm=llm, tools=tools, prompt=prompt)
+agent_executor = AgentExecutor(
+    agent=agent,
+    tools=tools,
+    verbose=True,
+    return_intermediate_steps=True,
+)
+memory = AgentTokenBufferMemory(llm=llm)
+starter_message = "Ask me anything about LangSmith!"
+if "messages" not in st.session_state or st.sidebar.button("Clear message history"):
+    st.session_state["messages"] = [AIMessage(content=starter_message)]
+
+
+def send_feedback(run_id, score):
+    client.create_feedback(run_id, "user_score", score=score)
+
+
+for msg in st.session_state.messages:
+    if isinstance(msg, AIMessage):
+        st.chat_message("assistant").write(msg.content)
+    elif isinstance(msg, HumanMessage):
+        st.chat_message("user").write(msg.content)
+    memory.chat_memory.add_message(msg)
+
+
+if prompt := st.chat_input(placeholder=starter_message):
+    st.chat_message("user").write(prompt)
+    with st.chat_message("assistant"):
+        st_callback = StreamlitCallbackHandler(st.container())
+        response = agent_executor(
+            {"input": prompt, "history": st.session_state.messages},
+            callbacks=[st_callback],
+            include_run_info=True,
         )
+        st.session_state.messages.append(AIMessage(content=response["output"]))
+        st.write(response["output"])
+        memory.save_context({"input": prompt}, response)
+        st.session_state["messages"] = memory.buffer
+        run_id = response["__run"].run_id
 
-if prompt := st.text_input("Your question"):
-  # Prompt for user input and save to chat history
-  st.session_state.messages.append({"role": "user", "content": prompt})
+        col_blank, col_text, col1, col2 = st.columns([10, 2, 1, 1])
+        with col_text:
+            st.text("Feedback:")
 
-for message in st.session_state.messages:
-  # Display the prior chat messages
-  with st.chat_message(message["role"]):
-    st.write(message["content"])
+        with col1:
+            st.button("👍", on_click=send_feedback, args=(run_id, 1))
 
-# If the last message is not from the assistant, generate a new response
-if st.session_state.messages[-1]["role"] != "assistant":
-  with st.chat_message("assistant"):
-    with st.spinner("Thinking..."):
-      response = st.session_state.chain(
-                {"context": st.session_state.chat_engine.memory.buffer, "question": customer_prompt}, return_only_outputs=True)
-      st.write(response.response)
-      message = {"role": "assistant", "content": response.response}
-      st.session_state.messages.append(
-          message)  # Add response to message history
+        with col2:
+            st.button("👎", on_click=send_feedback, args=(run_id, 0))
