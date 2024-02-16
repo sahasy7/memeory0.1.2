@@ -33,6 +33,29 @@ QDRANT_HOST = st.secrets.QDRANT_HOST
 QDRANT_API_KEY = st.secrets.QDRANT_API_KEY
 
 @st.cache(show_spinner=False)
+
+# Custom hash function for qdrant_client.QdrantClient
+def hash_qdrant_client(obj):
+    # Return a hashable representation of the object
+    return hash((obj.url, obj.api_key))
+
+# Custom hash function for OpenAIEmbeddings
+def hash_openai_embeddings(obj):
+    # Return a hashable representation of the object
+    return hash(obj.model)  # Adjust this based on the properties you want to hash
+
+# Custom hash function for langchain_community.vectorstores.qdrant.Qdrant
+def hash_qdrant(obj):
+    # Return a hashable representation of the object
+    return hash((obj.client, obj.collection_name, obj.embeddings))
+
+@st.cache(
+    hash_funcs={
+        qdrant_client.QdrantClient: hash_qdrant_client,
+        OpenAIEmbeddings: hash_openai_embeddings,
+        Qdrant: hash_qdrant
+    }
+)
 def load_data():
     with st.spinner(text="Loading and indexing the Streamlit docs – hang tight! This should take 1-2 minutes."):
         client = qdrant_client.QdrantClient(
@@ -47,6 +70,7 @@ def load_data():
         )
         print("Connection established!")
         return vector_store
+
 
 
 prompt_template = """
