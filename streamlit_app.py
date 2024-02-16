@@ -15,6 +15,7 @@ from langchain.chat_models import ChatOpenAI
 from langchain.schema import SystemMessage, AIMessage, HumanMessage
 from langchain.prompts import MessagesPlaceholder
 from langsmith import Client
+
 LANGCHAIN_API_KEY= st.secrets.LangSmith_API
 client = Client()
 
