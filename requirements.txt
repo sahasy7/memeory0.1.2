@@ -1,8 +1,7 @@
+langchain
 streamlit
+bs4
+html2text
 openai
-langchain 
-langchain-community 
-langchainhub 
-langchain-openai 
-qdrant-client 
 tiktoken
+faiss-cpu
