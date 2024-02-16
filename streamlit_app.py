@@ -1,9 +1,9 @@
 import os
-import streamlit as st
-from langchain.text_splitter import CharacterTextSplitter
-from langchain_community.vectorstores import FAISS
+import qdrant_client
 from langchain_openai import OpenAIEmbeddings
-from langchain_community.document_loaders import TextLoader
+from langchain.vectorstores import Qdrant
+import streamlit as st
+from langchain_openai import OpenAIEmbeddings
 from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.chains.conversation.memory import ConversationSummaryMemory
@@ -29,20 +29,24 @@ if "messages" not in st.session_state.keys():
   }]
 
 os.environ['OPENAI_API_KEY'] = st.secrets.openai_key
+QDRANT_HOST = st.secrets.QDRANT_HOST
+QDRANT_API_KEY = st.secrets.QDRANT_API_KEY
 
 @st.cache(show_spinner=False)
 def load_data():
-  with st.spinner(
-      text=
-      "Loading and indexing the Streamlit docs – hang tight! This should take 1-2 minutes."
-  ):
-        loader = TextLoader("data/GSM Mall Update Q&A.txt")
-        documents = loader.load()
-        text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
-        texts = text_splitter.split_documents(documents)
+    with st.spinner(text="Loading and indexing the Streamlit docs – hang tight! This should take 1-2 minutes."):
+        client = qdrant_client.QdrantClient(
+            url=QDRANT_HOST,
+            api_key=QDRANT_API_KEY,
+        )
         embeddings = OpenAIEmbeddings()
-        db = FAISS.from_documents(texts, embeddings)
-        return db
+        vector_store = Qdrant(
+            client=client,
+            collection_name="gsm_demo.0.0.4",
+            embeddings=embeddings
+        )
+        print("Connection established!")
+        return vector_store
 
 vectore_store = load_data()
 dr = vectore_store.as_retriever()
