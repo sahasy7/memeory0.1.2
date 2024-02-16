@@ -48,9 +48,6 @@ def load_data():
         print("Connection established!")
         return vector_store
 
-vectore_store = load_data()
-dr = vectore_store.as_retriever()
-
 
 prompt_template = """
 Your friendly assistant is here to help! Remember, always provide clear, concise, and friendly responses within 10-15 words. value User time and aim to provide clear and concise responses. Maintain a positive and professional tone. Encourage users to visit the store subtly, without being pushy. Dont hallucinate. Let's make every interaction a delightful experience! 😊
@@ -83,6 +80,8 @@ template = (
 prompt = PromptTemplate.from_template(template)
         # question_generator_chain = LLMChain(llm=llm, prompt=prompt
 if "chat_engine" not in st.session_state.keys():
+  vectore_store = load_data()
+  dr = vectore_store.as_retriever()
   # Initialize the chat engine
   st.session_state.chat_engine = ConversationalRetrievalChain.from_llm(
             llm = llm,
