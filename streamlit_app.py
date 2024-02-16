@@ -46,9 +46,7 @@ def load_data():
             embeddings=embeddings
         )
         print("Connection established!")
-       vectore_store = load_data()
-       dr = vectore_store.as_retriever()
-        return dr
+        return vector_store
 
 
 prompt_template = """
@@ -87,7 +85,7 @@ if "chat_engine" not in st.session_state.keys():
             llm = llm,
             chain_type = "stuff",
             memory = ConversationSummaryMemory(llm = llm, memory_key='chat_history', input_key='question', output_key= 'answer', return_messages=True),
-            retriever = load_data(),
+            retriever = load_data().as_retriever(),
             condense_question_prompt = prompt,
             return_source_documents=False,
             combine_docs_chain_kwargs=chain_type_kwargs,
