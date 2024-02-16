@@ -71,7 +71,8 @@ def load_data():
         print("Connection established!")
         return vector_store
 
-
+cetore_sotre = load_data()
+dr = cetore_sotre.as_retriever()
 
 prompt_template = """
 Your friendly assistant is here to help! Remember, always provide clear, concise, and friendly responses within 10-15 words. value User time and aim to provide clear and concise responses. Maintain a positive and professional tone. Encourage users to visit the store subtly, without being pushy. Dont hallucinate. Let's make every interaction a delightful experience! 😊
@@ -109,7 +110,7 @@ if "chat_engine" not in st.session_state.keys():
             llm = llm,
             chain_type = "stuff",
             memory = ConversationSummaryMemory(llm = llm, memory_key='chat_history', input_key='question', output_key= 'answer', return_messages=True),
-            retriever = load_data().as_retriever(),
+            retriever = dr,
             condense_question_prompt = prompt,
             return_source_documents=False,
             combine_docs_chain_kwargs=chain_type_kwargs,
