@@ -1,5 +1,5 @@
 import streamlit as st
-
+import os 
 from langchain.document_loaders import RecursiveUrlLoader
 from langchain.document_transformers import Html2TextTransformer
 from langchain.embeddings import OpenAIEmbeddings
@@ -16,7 +16,7 @@ from langchain.schema import SystemMessage, AIMessage, HumanMessage
 from langchain.prompts import MessagesPlaceholder
 from langsmith import Client
 
-LANGCHAIN_API_KEY= st.secrets.LangSmith_API
+os.environ['LANGCHAIN_API_KEY']= st.secrets.LangSmith_API
 client = Client()
 
 st.set_page_config(
