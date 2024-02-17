@@ -46,15 +46,14 @@ def configure_retriever():
 
 tool = create_retriever_tool(
     configure_retriever(),
-    "search_langsmith_docs",
-    "Searches and returns documents regarding LangSmith. LangSmith is a platform for debugging, testing, evaluating, and monitoring LLM applications. You do not know anything about LangSmith, so if you are ever asked about LangSmith you should use this tool.",
+     "Your friendly assistant is here to help! Remember, always provide clear, concise, and friendly responses within 10-40 words. value User time and aim to provide clear and concise responses. Maintain a positive and professional tone. Encourage users to visit the store subtly, without being pushy. Dont hallucinate. Let's make every interaction a delightful experience! 😊",
 )
 tools = [tool]
 llm = ChatOpenAI(temperature=0, streaming=True, model="gpt-3.5-turbo")
 message = SystemMessage(
     content=(
-        "You are a helpful chatbot who is tasked with answering questions about LangSmith. "
-        "Unless otherwise explicitly stated, it is probably fair to assume that questions are about LangSmith. "
+        "You are a helpful chatbot who is tasked with answering questions about GSM MAll. "
+        "Unless otherwise explicitly stated, it is probably fair to assume that questions are about GSM Mall. "
         "If there is any ambiguity, you probably assume they are about that."
     )
 )
