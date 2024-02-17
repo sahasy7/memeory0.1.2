@@ -1,6 +1,6 @@
 import streamlit as st
 import os 
-from langchain.document_loaders import RecursiveUrlLoader
+from langchain_community.document_loaders import TextLoader
 from langchain.document_transformers import Html2TextTransformer
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -32,14 +32,13 @@ st.set_page_config(
 
 @st.cache_resource(ttl="1h")
 def configure_retriever():
-    loader = RecursiveUrlLoader("https://docs.smith.langchain.com/")
+    loader = TextLoader("/content/KF2GSMTEST-_1.txt")
     raw_documents = loader.load()
-    docs = Html2TextTransformer().transform_documents(raw_documents)
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=1000,
         chunk_overlap=200,
     )
-    documents = text_splitter.split_documents(docs)
+    documents = text_splitter.split_documents(raw_documents)
     embeddings = OpenAIEmbeddings()
     vectorstore = FAISS.from_documents(documents, embeddings)
     return vectorstore.as_retriever(search_kwargs={"k": 4})
