@@ -32,7 +32,7 @@ st.set_page_config(
 
 @st.cache_resource(ttl="1h")
 def configure_retriever():
-    loader = TextLoader("/content/KF2GSMTEST-_1.txt")
+    loader = TextLoader("data/GSM Mall Update Q&A.txt")
     raw_documents = loader.load()
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=1000,
