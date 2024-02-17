@@ -46,8 +46,8 @@ def configure_retriever():
 
 tool = create_retriever_tool(
     configure_retriever(),
-     "Your friendly assistant is here to help! Remember, always provide clear, concise, and friendly responses within 10-40 words." ,
-    "value User time and aim to provide clear and concise responses. Maintain a positive and professional tone. Encourage users to visit the store subtly, without being pushy. Dont hallucinate. Let's make every interaction a delightful experience! 😊",
+     "search_GSM Mall Update Q&A.txt",
+    "Searches and returns documents regarding GSM Mall. GSM MALL  is LOACTED NEAR MIYAPUR HYDERABAD. You do not know anything about GSM MALL, so if you are ever asked about GSM MALL you should use this tool.",
 )
 tools = [tool]
 llm = ChatOpenAI(temperature=0, streaming=True, model="gpt-3.5-turbo")
